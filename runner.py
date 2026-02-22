@@ -61,11 +61,11 @@ def _step_standort(page, config: dict) -> bool:
                 container = page.locator('[data-testid^="location-container-"]').filter(
                     has_text=room_name
                 )
-                container.locator('[data-testid^="location-checkbox-"]').check(timeout=5000)
+                container.locator('[data-testid^="location-checkbox-"]').check(timeout=4000)
             except Exception:
                 # 2. Checkbox per accessible name (Label-Zuordnung)
                 try:
-                    page.get_by_role("checkbox", name=room_name).check(timeout=5000)
+                    page.get_by_role("checkbox", name=room_name).check(timeout=4000)
                 except Exception:
                     # 3. Label/Text klicken
                     loc = page.get_by_text(room_name, exact=False).first
@@ -112,12 +112,12 @@ def _step_termin(page, config: dict) -> bool:
             date_btn = page.locator(
                 f'button[data-testid^="slot_date_button-"][aria-label="{date_de}"]'
             )
-            date_btn.first.wait_for(state="visible", timeout=5000)
+            date_btn.first.wait_for(state="visible", timeout=4000)
             date_btn.first.click()
         except Exception:
             # 2. Button per aria-label oder Text
             try:
-                page.get_by_role("button", name=date_de).click(timeout=5000)
+                page.get_by_role("button", name=date_de).click(timeout=4000)
             except Exception:
                 date_loc = page.get_by_text(date_de).first
                 date_loc.wait_for(state="visible", timeout=STEP_TIMEOUT_MS)

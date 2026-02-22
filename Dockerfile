@@ -13,6 +13,6 @@ RUN playwright install-deps chromium
 
 COPY . .
 
-EXPOSE 5000
+EXPOSE 4000
 
 CMD ["python", "app.py"]

@@ -69,7 +69,7 @@ Für den Betrieb auf einem Webserver mit passwortgeschütztem Config-Formular un
    docker compose up -d
    ```
 
-3. Im Browser `http://localhost:5000` öffnen, mit Passwort anmelden, Config im Formular ausfüllen und speichern.
+3. Im Browser `http://localhost:4000` öffnen, mit Passwort anmelden, Config im Formular ausfüllen und speichern.
 
 Die Buchung läuft automatisch am Stichtag um 00:00. Config und Screenshots liegen in `./data/`.
 
