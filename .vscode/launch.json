@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Trautermin: Normal (nur am Stichtag)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/book_trautermin.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Trautermin: Dry-Run",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/book_trautermin.py",
+      "args": ["--dry-run"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Trautermin: Force (Buchung testen)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/book_trautermin.py",
+      "args": ["--force"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

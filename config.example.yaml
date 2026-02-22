@@ -1,0 +1,59 @@
+# Trautermin-Automatisierung Stadt Köln
+# Kopiere diese Datei nach config.yaml und trage deine Daten ein.
+# config.yaml wird nicht versioniert (gitignore).
+
+# Buchungswunsch (Zieldatum = Tag, an dem die Trauung stattfinden soll)
+desired_date: "2026-09-19"   # YYYY-MM-DD
+desired_time: "12:00"       # HH:MM, optional; wenn nicht verfügbar → erster Termin an dem Tag
+
+# Raum-Reihenfolge (erster verfügbarer wird gewählt)
+room_priority:
+  - Rentkammer
+  - "Weißer Saal"
+  - "Rathaus Spanischer Bau"
+  - "Rathaus Porz"
+
+# Person 1
+person1:
+  anrede: "Herr"            # Herr / Frau / divers
+  vorname: ""
+  nachname: ""
+  geburtsdatum: ""          # tt.mm.jjjj
+  staatsangehoerigkeit: ""
+  wohnsitz_koeln: "Ja"      # Ja / Nein
+
+# Person 2
+person2:
+  anrede: "Frau"
+  vorname: ""
+  nachname: ""
+  geburtsdatum: ""
+  staatsangehoerigkeit: ""
+  wohnsitz_koeln: "Ja"
+
+# Kontakt
+contact:
+  email: ""
+  telefon: ""               # optional
+
+# Optionale Einstellungen
+options:
+  # Buchung auch nach dem Stichtag erlauben (z.B. wenn Stichtag verpasst wurde)
+  allow_after_stichtag: false
+  # Browser sichtbar starten (zum Debuggen bei Hänger)
+  browser_headed: false
+  # Screenshot bei Erfolg/Fehler speichern
+  screenshot_on_success: true
+  screenshot_on_error: true
+  screenshot_dir: "screenshots"
+  # Log-Datei (leer = nur stdout)
+  log_file: ""
+  # Benachrichtigung bei Erfolg/Fehler (E-Mail)
+  notify:
+    enabled: false
+    smtp_host: ""
+    smtp_port: 587
+    smtp_user: ""
+    smtp_password: ""
+    from_email: ""
+    to_email: ""
