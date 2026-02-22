@@ -2,12 +2,12 @@ services:
   wedding-catcher:
     build: .
     ports:
-      - "5000:5000"
+      - "4000:4000"
     environment:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
       - CONFIG_PATH=/app/data/config.yaml
     volumes:
       - ./data:/app/data
-      - ./data/screenshots:/app/screenshots
+      - ./screenshots:/app/screenshots
     restart: unless-stopped
