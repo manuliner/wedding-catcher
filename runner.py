@@ -1,6 +1,7 @@
 """
 Playwright-Flow für Trautermin-Buchung: Standort → Termin → Ihre Daten → Bestätigung.
 """
+from __future__ import annotations
 
 import logging
 import re
@@ -15,12 +16,13 @@ DEFAULT_TIMEOUT_MS = 30_000
 STEP_TIMEOUT_MS = 15_000
 
 
-def _screenshot(page, config: dict, prefix: str) -> None:
+def _screenshot(page, config: dict, prefix: str) -> str | None:
+    """Speichert Screenshot. Gibt relativen Pfad zurück oder None bei Fehler/Deaktivierung."""
     opts = config.get("options") or {}
     if not opts.get("screenshot_on_success") and prefix == "success":
-        return
+        return None
     if not opts.get("screenshot_on_error") and prefix == "error":
-        return
+        return None
     dir_path = Path(opts.get("screenshot_dir") or "screenshots")
     dir_path.mkdir(parents=True, exist_ok=True)
     name = f"{prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
@@ -28,8 +30,10 @@ def _screenshot(page, config: dict, prefix: str) -> None:
     try:
         page.screenshot(path=path)
         log.info("Screenshot gespeichert: %s", path)
+        return str(path)
     except Exception as e:
         log.warning("Screenshot fehlgeschlagen: %s", e)
+        return None
 
 
 def _notify(config: dict, success: bool, message: str) -> None:
@@ -52,13 +56,21 @@ def _step_standort(page, config: dict) -> bool:
     log.info("Standort-Auswahl: Reihenfolge %s", room_priority)
     for room_name in room_priority:
         try:
-            # Zuerst Checkbox per accessible name (Label-Zuordnung), sonst Label/Text klicken
+            # 1. Stadt Köln: data-testid location-container + location-checkbox
             try:
-                page.get_by_role("checkbox", name=room_name).check(timeout=5000)
+                container = page.locator('[data-testid^="location-container-"]').filter(
+                    has_text=room_name
+                )
+                container.locator('[data-testid^="location-checkbox-"]').check(timeout=5000)
             except Exception:
-                loc = page.get_by_text(room_name, exact=False).first
-                loc.wait_for(state="visible", timeout=STEP_TIMEOUT_MS)
-                loc.click()
+                # 2. Checkbox per accessible name (Label-Zuordnung)
+                try:
+                    page.get_by_role("checkbox", name=room_name).check(timeout=5000)
+                except Exception:
+                    # 3. Label/Text klicken
+                    loc = page.get_by_text(room_name, exact=False).first
+                    loc.wait_for(state="visible", timeout=STEP_TIMEOUT_MS)
+                    loc.click()
             log.info("→ Standort gewählt: %s", room_name)
             break
         except PlaywrightTimeout:
@@ -95,9 +107,21 @@ def _step_termin(page, config: dict) -> bool:
     # Klick auf den Tag (Seite zeigt "Tage mit verfügbaren Terminen", dann Buttons/Links pro Tag)
     log.info("Suche Datum %s...", date_de)
     try:
-        date_loc = page.get_by_text(date_de).first
-        date_loc.wait_for(state="visible", timeout=STEP_TIMEOUT_MS)
-        date_loc.click()
+        # 1. Stadt Köln: button[data-testid^="slot_date_button-"] mit aria-label
+        try:
+            date_btn = page.locator(
+                f'button[data-testid^="slot_date_button-"][aria-label="{date_de}"]'
+            )
+            date_btn.first.wait_for(state="visible", timeout=5000)
+            date_btn.first.click()
+        except Exception:
+            # 2. Button per aria-label oder Text
+            try:
+                page.get_by_role("button", name=date_de).click(timeout=5000)
+            except Exception:
+                date_loc = page.get_by_text(date_de).first
+                date_loc.wait_for(state="visible", timeout=STEP_TIMEOUT_MS)
+                date_loc.click()
         log.info("→ Datum gewählt: %s", date_de)
     except PlaywrightTimeout:
         log.error("Datum %s auf der Seite nicht gefunden (nicht freigeschaltet oder ausgebucht)", date_de)
@@ -434,17 +458,17 @@ def _step_ihre_daten(page, config: dict) -> bool:
     return True
 
 
-def _step_bestaetigung(page, config: dict) -> bool:
-    """Bestätigungsseite prüfen, ggf. weiteren Button klicken, Screenshot."""
+def _step_bestaetigung(page, config: dict) -> tuple[bool, str | None]:
+    """Bestätigungsseite prüfen, ggf. weiteren Button klicken, Screenshot. Returns (success, screenshot_path)."""
     page.wait_for_load_state("load", timeout=DEFAULT_TIMEOUT_MS)
     page.wait_for_timeout(2000)
     text_lower = (page.inner_text("body") or "").lower()
     # Erfolgsindikatoren
     if "bestätigung" in text_lower or "erfolgreich" in text_lower or "gebucht" in text_lower:
         log.info("→ Buchung erfolgreich (Bestätigung/Erfolg erkannt)")
-        _screenshot(page, config, "success")
+        path = _screenshot(page, config, "success")
         _notify(config, True, "Trautermin erfolgreich gebucht.")
-        return True
+        return True, path
     # Weitere Bestätigung nötig?
     try:
         btn = page.get_by_role("button", name="Bestätigen").or_(page.get_by_text("Bestätigen").first)
@@ -452,27 +476,42 @@ def _step_bestaetigung(page, config: dict) -> bool:
             log.info("→ Bestätigen-Button gefunden, klicke...")
             btn.click()
             page.wait_for_timeout(2000)
-            _screenshot(page, config, "success")
+            path = _screenshot(page, config, "success")
             _notify(config, True, "Trautermin bestätigt.")
-            return True
+            return True, path
     except Exception:
         pass
     log.warning("→ Kein Erfolgsindikator gefunden (bestätigung/erfolgreich/gebucht)")
-    _screenshot(page, config, "error")
+    path = _screenshot(page, config, "error")
     _notify(config, False, "Trautermin-Buchung: Unklarer Abschluss (siehe Screenshot/Log).")
-    return False
+    return False, path
 
 
-def run_booking_flow(config: dict, url: str) -> bool:
-    """Führt den kompletten Buchungsflow aus. Returns True bei Erfolg."""
+def run_booking_flow(config: dict, url: str) -> tuple[bool, list[str]]:
+    """Führt den kompletten Buchungsflow aus. Returns (success, list_of_screenshot_paths)."""
+    screenshots: list[str] = []
+
+    def capture_screenshot(path: str | None) -> str | None:
+        if path:
+            screenshots.append(path)
+        return path
+
     opts = config.get("options") or {}
     headless = not opts.get("browser_headed", False)
     with sync_playwright() as p:
         log.info("Starte Browser (headless=%s)...", headless)
-        browser = p.chromium.launch(headless=headless)
+        browser = p.chromium.launch(
+            headless=headless,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
         context = browser.new_context(
             locale="de-DE",
             timezone_id="Europe/Berlin",
+            viewport={"width": 1280, "height": 720},
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            ),
         )
         context.set_default_timeout(DEFAULT_TIMEOUT_MS)
         page = context.new_page()
@@ -486,41 +525,48 @@ def run_booking_flow(config: dict, url: str) -> bool:
             log.warning("Seite lädt langsam, fahre trotzdem fort")
         except Exception as e:
             log.exception("Seite konnte nicht geladen werden: %s", e)
-            _screenshot(page, config, "error")
+            capture_screenshot(_screenshot(page, config, "error"))
             browser.close()
-            return False
+            return False, screenshots
 
         try:
+            capture_screenshot(_screenshot(page, config, "step_0_seite"))
+
             log.info("Schritt 1/4: Standort")
             if not _step_standort(page, config):
-                _screenshot(page, config, "error")
-                return False
+                capture_screenshot(_screenshot(page, config, "error"))
+                return False, screenshots
             page.wait_for_load_state("load", timeout=DEFAULT_TIMEOUT_MS)
             page.wait_for_timeout(1000)
+            capture_screenshot(_screenshot(page, config, "step_1_standort"))
 
             log.info("Schritt 2/4: Termin (Datum + Uhrzeit)")
             if not _step_termin(page, config):
-                _screenshot(page, config, "error")
-                return False
+                capture_screenshot(_screenshot(page, config, "error"))
+                return False, screenshots
             page.wait_for_load_state("load", timeout=DEFAULT_TIMEOUT_MS)
             page.wait_for_timeout(1000)
+            capture_screenshot(_screenshot(page, config, "step_2_termin"))
 
             log.info("Schritt 3/4: Ihre Daten")
             if not _step_ihre_daten(page, config):
-                _screenshot(page, config, "error")
-                return False
+                capture_screenshot(_screenshot(page, config, "error"))
+                return False, screenshots
             page.wait_for_load_state("load", timeout=DEFAULT_TIMEOUT_MS)
+            capture_screenshot(_screenshot(page, config, "step_3_daten"))
 
             log.info("Schritt 4/4: Bestätigung")
-            return _step_bestaetigung(page, config)
+            success, path = _step_bestaetigung(page, config)
+            capture_screenshot(path)
+            return success, screenshots
         except PlaywrightTimeout as e:
             log.exception("Timeout: %s", e)
-            _screenshot(page, config, "error")
-            return False
+            capture_screenshot(_screenshot(page, config, "error"))
+            return False, screenshots
         except Exception as e:
             log.exception("Buchungsflow fehlgeschlagen: %s", e)
-            _screenshot(page, config, "error")
-            return False
+            capture_screenshot(_screenshot(page, config, "error"))
+            return False, screenshots
         finally:
             browser.close()
-    return False
+    return False, screenshots

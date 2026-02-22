@@ -2,8 +2,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Web-Server (Port 5000)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/app.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
       "name": "Trautermin: Normal (nur am Stichtag)",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/book_trautermin.py",
       "console": "integratedTerminal",
@@ -11,7 +20,7 @@
     },
     {
       "name": "Trautermin: Dry-Run",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/book_trautermin.py",
       "args": ["--dry-run"],
@@ -20,7 +29,7 @@
     },
     {
       "name": "Trautermin: Force (Buchung testen)",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/book_trautermin.py",
       "args": ["--force"],

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Versuche & Logs – Trautermin</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 1rem; }
+        h1 { font-size: 1.25rem; }
+        nav { margin-bottom: 1rem; }
+        nav a { margin-right: 1rem; }
+        .run { border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1rem; overflow: hidden; }
+        .run-header { padding: 0.75rem 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .run.success .run-header { background: #e8f5e9; }
+        .run.failure .run-header { background: #ffebee; }
+        .run-time { font-weight: 500; }
+        .run-badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem; }
+        .run-badge.success { background: #4caf50; color: white; }
+        .run-badge.failure { background: #f44336; color: white; }
+        .run-attempts { color: #666; font-size: 0.9rem; }
+        .run-screenshots { padding: 1rem; background: #fafafa; border-top: 1px solid #eee; display: flex; flex-wrap: wrap; gap: 1rem; }
+        .run-screenshots .screenshot-item { flex: 1 1 200px; min-width: 0; }
+        .run-screenshots .screenshot-item img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; display: block; }
+        .run-screenshots .screenshot-item img:hover { opacity: 0.95; }
+        .run-screenshots .screenshot-item .screenshot-label { font-size: 0.75rem; color: #666; margin-top: 0.25rem; }
+        .run-log { padding: 1rem; background: #f5f5f5; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto; }
+        .empty { color: #666; padding: 2rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('config_form') }}">Konfiguration</a>
+        <a href="{{ url_for('runs_history') }}">Versuche & Logs</a>
+        <a href="{{ url_for('logout') }}">Abmelden</a>
+    </nav>
+    <h1>Versuche & Logs</h1>
+    <p class="hint" style="color:#666;margin-bottom:1rem;">Buchungsversuche am Stichtag (automatisch um 00:00).</p>
+
+    <form method="post" action="{{ url_for('trigger_run') }}" style="margin-bottom:1.5rem;">
+        <button type="submit">Jetzt testen (manueller Versuch)</button>
+    </form>
+
+    {% if runs %}
+        {% for run in runs %}
+        <div class="run {{ 'success' if run.success else 'failure' }}">
+            <div class="run-header">
+                <span class="run-time">{{ run.timestamp }}</span>
+                <span class="run-badge {{ 'success' if run.success else 'failure' }}">
+                    {{ 'Erfolg' if run.success else 'Fehlgeschlagen' }}
+                </span>
+                <span class="run-attempts">Versuch {{ run.attempts }}/4</span>
+            </div>
+            {% if run.screenshots is defined and run.screenshots %}{% set run_screenshots = run.screenshots %}
+            {% elif run.screenshot is defined and run.screenshot %}{% set run_screenshots = [run.screenshot] %}
+            {% else %}{% set run_screenshots = [] %}{% endif %}
+            {% if run_screenshots %}
+            <div class="run-screenshots">
+                {% for screenshot in run_screenshots %}
+                <div class="screenshot-item">
+                    <a href="{{ url_for('serve_screenshot', filename=screenshot) }}" target="_blank" rel="noopener">
+                        <img src="{{ url_for('serve_screenshot', filename=screenshot) }}" alt="Screenshot {{ loop.index }}">
+                    </a>
+                    <div class="screenshot-label">{{ screenshot }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="run-log">{{ run.log }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="empty">Noch keine Buchungsversuche.</p>
+    {% endif %}
+</body>
+</html>

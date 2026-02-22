@@ -133,14 +133,16 @@ def main() -> int:
         log.info("Dry-run: Buchung würde ausgeführt, Config geladen. Kein Browser gestartet.")
         return 0
 
-    return run_booking(config=config, config_path=args.config)
+    exit_code, _, _ = run_booking(config=config, config_path=args.config)
+    return exit_code
 
 
-def run_booking(config: dict, config_path: Path = None) -> int:
+def run_booking(config: dict, config_path: Path = None):
     """
     Führt die Buchung durch (mit Retries).
     Wird von CLI und Scheduler genutzt.
-    Returns 0 bei Erfolg, 1 bei Fehlschlag.
+    Returns (exit_code, attempts_used, screenshot_paths): 0 bei Erfolg, 1 bei Fehlschlag;
+    attempts_used 1–4; screenshot_paths ist Liste relativer Pfade (alle Schritte).
     """
     from runner import run_booking_flow
 
@@ -148,21 +150,24 @@ def run_booking(config: dict, config_path: Path = None) -> int:
     desired_date_str = (config.get("desired_date") or "").strip()
     if not desired_date_str:
         log.error("desired_date in Config fehlt")
-        return 1
-    log.info("Stichtag für %s – Starte Buchungsflow.", desired_date_str)
+        return (1, 0, [])
 
+    log.info("Stichtag für %s – Starte Buchungsflow.", desired_date_str)
     max_attempts = 4  # 1 initial + 3 Wiederholungen bei Fehlschlag
+    all_screenshots: list[str] = []
+
     for attempt in range(1, max_attempts + 1):
         log.info("Versuch %d/%d...", attempt, max_attempts)
-        success = run_booking_flow(config=config, url=BOOKING_URL)
+        success, screenshots = run_booking_flow(config=config, url=BOOKING_URL)
+        all_screenshots.extend(screenshots)
         if success:
             log.info("Buchung erfolgreich – Abbruch.")
-            return 0
+            return (0, attempt, all_screenshots)
         if attempt < max_attempts:
             log.warning("Versuch %d fehlgeschlagen, erneuter Versuch in 3 Sekunden...", attempt)
             time.sleep(3)
     log.error("Alle %d Versuche fehlgeschlagen.", max_attempts)
-    return 1
+    return (1, max_attempts, all_screenshots)
 
 
 if __name__ == "__main__":

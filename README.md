@@ -54,6 +54,25 @@ playwright install chromium
   python book_trautermin.py --dry-run
   ```
 
+## Web-UI mit Docker (passwortgeschützt)
+
+Für den Betrieb auf einem Webserver mit passwortgeschütztem Config-Formular und automatischer Buchung am Stichtag 00:00:
+
+1. `.env` anlegen (aus `.env.example`):
+   ```bash
+   cp .env.example .env
+   # ADMIN_PASSWORD und FLASK_SECRET_KEY eintragen
+   ```
+
+2. Container starten:
+   ```bash
+   docker compose up -d
+   ```
+
+3. Im Browser `http://localhost:5000` öffnen, mit Passwort anmelden, Config im Formular ausfüllen und speichern.
+
+Die Buchung läuft automatisch am Stichtag um 00:00. Config und Screenshots liegen in `./data/`.
+
 ## Cron einrichten
 
 Siehe [scheduler/README.md](scheduler/README.md) für die genaue Cron-Zeile und Hinweise (z. B. absoluter Pfad zum Python der Venv, Arbeitsverzeichnis).

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konfiguration – Trautermin</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 1rem; }
+        h1 { font-size: 1.25rem; }
+        h2 { font-size: 1rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+        input[type="text"], input[type="email"], input[type="date"], select { width: 100%; padding: 0.5rem; margin-bottom: 0.75rem; }
+        .row { display: flex; gap: 1rem; }
+        .row > div { flex: 1; }
+        .checkbox { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .checkbox input { width: auto; }
+        nav { margin-bottom: 1rem; }
+        nav a { margin-right: 1rem; }
+        button { padding: 0.5rem 1rem; background: #333; color: white; border: none; cursor: pointer; margin-top: 1rem; }
+        .hint { font-size: 0.85rem; color: #666; margin-top: 0.25rem; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('config_form') }}">Konfiguration</a>
+        <a href="{{ url_for('runs_history') }}">Versuche & Logs</a>
+        <a href="{{ url_for('logout') }}">Abmelden</a>
+    </nav>
+    <h1>Trautermin – Konfiguration</h1>
+    <p class="hint">Buchung erfolgt automatisch am Stichtag (6 Monate vor Wunschdatum) um 00:00.</p>
+
+    <form method="post" action="{{ url_for('config_form') }}">
+        <h2>Buchungswunsch</h2>
+        <label for="desired_date">Zieldatum (YYYY-MM-DD)</label>
+        <input type="date" id="desired_date" name="desired_date" value="{{ config.get('desired_date', '') }}">
+
+        <label for="desired_time">Wunschuhrzeit (HH:MM)</label>
+        <input type="text" id="desired_time" name="desired_time" value="{{ config.get('desired_time', '11:00') }}" placeholder="11:00">
+
+        <h2>Raum-Reihenfolge</h2>
+        <p class="hint">Erster verfügbarer wird gewählt. Reihenfolge fest.</p>
+        {% for room in rooms %}
+        <div class="checkbox">
+            <input type="checkbox" id="room_{{ room }}" name="room_{{ room }}" {% if room in (config.get('room_priority') or []) %}checked{% endif %}>
+            <label for="room_{{ room }}" style="margin:0">{{ room }}</label>
+        </div>
+        {% endfor %}
+
+        <h2>Person 1</h2>
+        <label for="person1_anrede">Anrede</label>
+        <select id="person1_anrede" name="person1_anrede">
+            <option value="Herr" {% if (config.get('person1') or {}).get('anrede') == 'Herr' %}selected{% endif %}>Herr</option>
+            <option value="Frau" {% if (config.get('person1') or {}).get('anrede') == 'Frau' %}selected{% endif %}>Frau</option>
+            <option value="divers" {% if (config.get('person1') or {}).get('anrede') == 'divers' %}selected{% endif %}>divers</option>
+        </select>
+        <label for="person1_vorname">Vorname</label>
+        <input type="text" id="person1_vorname" name="person1_vorname" value="{{ (config.get('person1') or {}).get('vorname', '') }}">
+        <label for="person1_nachname">Nachname</label>
+        <input type="text" id="person1_nachname" name="person1_nachname" value="{{ (config.get('person1') or {}).get('nachname', '') }}">
+        <label for="person1_geburtsdatum">Geburtsdatum (TT.MM.JJJJ)</label>
+        <input type="text" id="person1_geburtsdatum" name="person1_geburtsdatum" value="{{ (config.get('person1') or {}).get('geburtsdatum', '') }}" placeholder="15.03.1990">
+        <label for="person1_staatsangehoerigkeit">Staatsangehörigkeit</label>
+        <input type="text" id="person1_staatsangehoerigkeit" name="person1_staatsangehoerigkeit" value="{{ (config.get('person1') or {}).get('staatsangehoerigkeit', '') }}">
+        <label for="person1_wohnsitz_koeln">Wohnsitz Köln</label>
+        <select id="person1_wohnsitz_koeln" name="person1_wohnsitz_koeln">
+            <option value="Ja" {% if (config.get('person1') or {}).get('wohnsitz_koeln') == 'Ja' %}selected{% endif %}>Ja</option>
+            <option value="Nein" {% if (config.get('person1') or {}).get('wohnsitz_koeln') == 'Nein' %}selected{% endif %}>Nein</option>
+        </select>
+
+        <h2>Person 2</h2>
+        <label for="person2_anrede">Anrede</label>
+        <select id="person2_anrede" name="person2_anrede">
+            <option value="Herr" {% if (config.get('person2') or {}).get('anrede') == 'Herr' %}selected{% endif %}>Herr</option>
+            <option value="Frau" {% if (config.get('person2') or {}).get('anrede') == 'Frau' %}selected{% endif %}>Frau</option>
+            <option value="divers" {% if (config.get('person2') or {}).get('anrede') == 'divers' %}selected{% endif %}>divers</option>
+        </select>
+        <label for="person2_vorname">Vorname</label>
+        <input type="text" id="person2_vorname" name="person2_vorname" value="{{ (config.get('person2') or {}).get('vorname', '') }}">
+        <label for="person2_nachname">Nachname</label>
+        <input type="text" id="person2_nachname" name="person2_nachname" value="{{ (config.get('person2') or {}).get('nachname', '') }}">
+        <label for="person2_geburtsdatum">Geburtsdatum (TT.MM.JJJJ)</label>
+        <input type="text" id="person2_geburtsdatum" name="person2_geburtsdatum" value="{{ (config.get('person2') or {}).get('geburtsdatum', '') }}" placeholder="22.07.1992">
+        <label for="person2_staatsangehoerigkeit">Staatsangehörigkeit</label>
+        <input type="text" id="person2_staatsangehoerigkeit" name="person2_staatsangehoerigkeit" value="{{ (config.get('person2') or {}).get('staatsangehoerigkeit', '') }}">
+        <label for="person2_wohnsitz_koeln">Wohnsitz Köln</label>
+        <select id="person2_wohnsitz_koeln" name="person2_wohnsitz_koeln">
+            <option value="Ja" {% if (config.get('person2') or {}).get('wohnsitz_koeln') == 'Ja' %}selected{% endif %}>Ja</option>
+            <option value="Nein" {% if (config.get('person2') or {}).get('wohnsitz_koeln') == 'Nein' %}selected{% endif %}>Nein</option>
+        </select>
+
+        <h2>Kontakt</h2>
+        <label for="contact_email">E-Mail</label>
+        <input type="email" id="contact_email" name="contact_email" value="{{ (config.get('contact') or {}).get('email', '') }}">
+        <label for="contact_telefon">Telefon</label>
+        <input type="text" id="contact_telefon" name="contact_telefon" value="{{ (config.get('contact') or {}).get('telefon', '') }}">
+
+        <h2>Optionen</h2>
+        {% set opts = config.get('options') or {} %}
+        <div class="checkbox">
+            <input type="checkbox" id="options_allow_after_stichtag" name="options_allow_after_stichtag" {% if opts.get('allow_after_stichtag') %}checked{% endif %}>
+            <label for="options_allow_after_stichtag" style="margin:0">Buchung auch nach Stichtag erlauben</label>
+        </div>
+
+        <button type="submit">Speichern</button>
+    </form>
+</body>
+</html>
